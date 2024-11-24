@@ -15,8 +15,8 @@ type node struct {
 	spilled    bool
 	key        []byte
 	pgid       pgid
-	parent     *node
-	children   nodes
+	parent     *node // 指向父节点的指针
+	children   nodes // 子节点列表，已排序
 	inodes     inodes
 }
 
@@ -29,7 +29,7 @@ func (n *node) root() *node {
 }
 
 // minKeys returns the minimum number of inodes this node should have.
-func (n *node) minKeys() int {
+func (n *node) minKeys() int { // 子节点至少有一个元素，非子节点至少有两个元素
 	if n.isLeaf {
 		return 1
 	}
@@ -126,7 +126,7 @@ func (n *node) put(oldKey, newKey, value []byte, pgid pgid, flags uint32) {
 	index := sort.Search(len(n.inodes), func(i int) bool { return bytes.Compare(n.inodes[i].key, oldKey) != -1 })
 
 	// Add capacity and shift nodes if we don't have an exact match and need to insert.
-	exact := (len(n.inodes) > 0 && index < len(n.inodes) && bytes.Equal(n.inodes[index].key, oldKey))
+	exact := len(n.inodes) > 0 && index < len(n.inodes) && bytes.Equal(n.inodes[index].key, oldKey)
 	if !exact {
 		n.inodes = append(n.inodes, inode{})
 		copy(n.inodes[index+1:], n.inodes[index:])
@@ -587,9 +587,11 @@ func (n *node) dump() {
 
 type nodes []*node
 
-func (s nodes) Len() int           { return len(s) }
-func (s nodes) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s nodes) Less(i, j int) bool { return bytes.Compare(s[i].inodes[0].key, s[j].inodes[0].key) == -1 }
+func (s nodes) Len() int      { return len(s) }
+func (s nodes) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s nodes) Less(i, j int) bool {
+	return bytes.Compare(s[i].inodes[0].key, s[j].inodes[0].key) == -1
+}
 
 // inode represents an internal node inside of a node.
 // It can be used to point to elements in a page or point

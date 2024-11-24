@@ -7,8 +7,6 @@ import (
 	"log"
 	"os"
 	"runtime"
-	"runtime/debug"
-	"strings"
 	"sync"
 	"time"
 	"unsafe"
@@ -202,6 +200,7 @@ func Open(path string, mode os.FileMode, options *Options) (*DB, error) {
 	} else {
 		// Read the first meta page to determine the page size.
 		var buf [0x1000]byte
+		// 从数据库文件的偏移0开始，读len(buf[:])数据到buf中，len(buf[:]) 是4K
 		if _, err := db.file.ReadAt(buf[:], 0); err == nil {
 			m := db.pageInBuffer(buf[:], 0).meta()
 			if err := m.validate(); err != nil {
@@ -1026,12 +1025,4 @@ func _assert(condition bool, msg string, v ...interface{}) {
 	if !condition {
 		panic(fmt.Sprintf("assertion failed: "+msg, v...))
 	}
-}
-
-func warn(v ...interface{})              { fmt.Fprintln(os.Stderr, v...) }
-func warnf(msg string, v ...interface{}) { fmt.Fprintf(os.Stderr, msg+"\n", v...) }
-
-func printstack() {
-	stack := strings.Join(strings.Split(string(debug.Stack()), "\n")[2:], "\n")
-	fmt.Fprintln(os.Stderr, stack)
 }

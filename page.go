@@ -27,12 +27,16 @@ const (
 
 type pgid uint64
 
+// page 是磁盘文件中的一个页，一共有4种类型的page。在db文件的组织中，前两个page是meta page
 type page struct {
 	id       pgid
 	flags    uint16
-	count    uint16
+	count    uint16 // 每个 page 是4k，这个count应该有最大值，最大值是多少？
 	overflow uint32
-	ptr      uintptr
+
+	// ptr 是这个 page 真实的数据的起始地址，在寻找元素的时候
+	// 会将这个 ptr 转换为数组的首地址，转换为一个数组
+	ptr uintptr
 }
 
 // typ returns a human readable page type string used for debugging.
@@ -95,7 +99,7 @@ func (s pages) Less(i, j int) bool { return s[i].id < s[j].id }
 
 // branchPageElement represents a node on a branch page.
 type branchPageElement struct {
-	pos   uint32
+	pos   uint32 // TODO 这个 pos 怎么解读
 	ksize uint32
 	pgid  pgid
 }
@@ -108,8 +112,9 @@ func (n *branchPageElement) key() []byte {
 
 // leafPageElement represents a node on a leaf page.
 type leafPageElement struct {
+	// 该值主要用来区分，是子桶叶子节点元素还是普通的key/value叶子节点元素。flags值为1时表示子桶。否则为key/value
 	flags uint32
-	pos   uint32
+	pos   uint32 //
 	ksize uint32
 	vsize uint32
 }
